@@ -4,6 +4,19 @@
 
 桌宠命令行助手是一个桌面二维动态桌宠，用于表达命令行工具和代码代理的运行状态。第一版聚焦代码代理工具：接收生命周期事件，转换成统一状态协议，并驱动桌宠表达状态、主动提醒用户、展示任务详情。
 
+## 拆分执行
+
+当前总 PRD 已拆成一组按顺序推进的子 PRD：
+
+1. [PRD-01 桥接服务与会话状态基线](prd-01-bridge-session-baseline.md)
+2. [PRD-02 桌宠状态渲染与实时同步](prd-02-desktop-state-sync.md)
+3. [PRD-03 关键状态打断与确认提醒](prd-03-interrupt-and-approval.md)
+4. [PRD-04 点击面板与多会话展示](prd-04-panel-and-multi-session.md)
+5. [PRD-05 Codex 适配器增强与动作链路](prd-05-codex-adapter-and-actions.md)
+6. [PRD-06 设置、持久化与可观测性收口](prd-06-settings-persistence-and-audit.md)
+
+总 PRD 负责约束整体范围，后续实现应优先按子 PRD 顺序推进。
+
 ## 目标
 
 - 让用户不用盯着终端，也能快速感知代码代理当前状态。
@@ -160,4 +173,3 @@
 - 点击桌宠能看到当前会话和最近日志。
 - 多会话能被跟踪，主桌宠跟随最近活跃会话。
 - 代码边界清晰：协议、桥接、桌面端、适配器各自独立。
-

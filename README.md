@@ -74,6 +74,7 @@ TermPet/
 
 - [项目规则](docs/project-rules.md)
 - [第一版产品需求](docs/prd/termpet-mvp.md)
+- [PRD 拆分索引](docs/prd/README.md)
 - [架构总览](docs/architecture/overview.md)
 - [事件协议](docs/architecture/event-protocol.md)
 - [插件系统](docs/architecture/plugin-system.md)
