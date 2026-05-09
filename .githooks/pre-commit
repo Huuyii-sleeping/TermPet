@@ -1,3 +1,3 @@
-#!/usr/bin/env powershell
+#!/bin/sh
 pnpm.cmd typecheck
-exit $LASTEXITCODE
+exit $?

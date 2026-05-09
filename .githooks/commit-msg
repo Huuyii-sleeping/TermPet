@@ -1,3 +1,3 @@
-#!/usr/bin/env powershell
-pnpm.cmd commitlint --edit $args[0]
-exit $LASTEXITCODE
+#!/bin/sh
+pnpm.cmd commitlint --edit "$1"
+exit $?
