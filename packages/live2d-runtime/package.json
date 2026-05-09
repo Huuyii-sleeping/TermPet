@@ -1,0 +1,20 @@
+{
+  "name": "@termpet/live2d-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "tsc --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@termpet/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

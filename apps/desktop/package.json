@@ -1,0 +1,31 @@
+{
+  "name": "@termpet/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "tsc --noEmit --pretty false && electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "tsc --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@termpet/live2d-runtime": "workspace:*",
+    "@termpet/protocol": "workspace:*",
+    "electron": "^38.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "electron-vite": "^4.0.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^7.0.0",
+    "typescript": "^5.8.0"
+  }
+}

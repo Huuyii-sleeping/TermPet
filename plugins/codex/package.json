@@ -1,0 +1,18 @@
+{
+  "name": "@termpet/plugin-codex",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "tsc --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@termpet/plugin-sdk": "workspace:*",
+    "@termpet/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

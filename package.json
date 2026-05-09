@@ -1,0 +1,27 @@
+{
+  "name": "termpet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "桌宠命令行助手工作区",
+  "packageManager": "pnpm@10.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @termpet/bridge --filter @termpet/desktop dev",
+    "dev:desktop": "pnpm --filter @termpet/desktop dev",
+    "dev:bridge": "pnpm --filter @termpet/bridge dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "prepare:git": "git config core.hooksPath .githooks",
+    "commitlint": "commitlint"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["electron", "esbuild"]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.0.0",
+    "@commitlint/config-conventional": "^20.0.0",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.8.0"
+  }
+}
