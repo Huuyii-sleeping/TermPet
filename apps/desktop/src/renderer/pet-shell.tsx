@@ -1,8 +1,10 @@
 import type { TermPetState } from "@termpet/protocol";
 import { getMotionForState } from "@termpet/live2d-runtime";
 import { InterruptLayer } from "./interrupt-layer";
+import { SessionPanel } from "./session-panel";
 import { useBridgeState } from "./use-bridge-state";
 import { useInterruptState } from "./use-interrupt-state";
+import { useSessionPanel } from "./use-session-panel";
 
 interface PetShellViewModel {
   activeSessionId?: string;
@@ -24,6 +26,7 @@ const idleViewModel: PetShellViewModel = {
 export function PetShell() {
   const bridgeState = useBridgeState();
   const interruptState = useInterruptState(bridgeState.activeEvent);
+  const sessionPanel = useSessionPanel(bridgeState.bridgeState);
   const viewModel = mapBridgeStateToViewModel(bridgeState);
   const motion = getMotionForState(viewModel.currentState);
 
@@ -41,13 +44,21 @@ export function PetShell() {
         toastEvent={interruptState.toastEvent}
       />
       <section className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center gap-4 p-6">
-        <div className="h-44 w-44 rounded-full border border-zinc-200 bg-white/85 shadow-xl backdrop-blur">
+        <button
+          className="h-44 w-44 rounded-full border border-zinc-200 bg-white/85 shadow-xl backdrop-blur transition hover:scale-[1.01] hover:bg-white"
+          onClick={sessionPanel.togglePanel}
+          type="button"
+        >
           <div className="flex h-full items-center justify-center text-center text-sm font-medium text-zinc-700">
             二维动态角色占位
           </div>
-        </div>
+        </button>
 
-        <div className="w-full rounded-lg border border-zinc-200 bg-white/90 p-4 shadow-lg backdrop-blur">
+        <button
+          className="w-full rounded-lg border border-zinc-200 bg-white/90 p-4 text-left shadow-lg backdrop-blur transition hover:bg-white"
+          onClick={sessionPanel.togglePanel}
+          type="button"
+        >
           <p className="text-xs text-zinc-500">
             当前状态
             {viewModel.sessionCount > 0 ? ` · ${viewModel.sessionCount} 个会话` : ""}
@@ -62,7 +73,19 @@ export function PetShell() {
             连接：{labelForConnectionState(viewModel.connectionState)}
             {viewModel.activeSessionId ? ` · 会话 ${viewModel.activeSessionId}` : ""}
           </p>
-        </div>
+        </button>
+
+        {sessionPanel.isOpen ? (
+          <SessionPanel
+            bridgeState={bridgeState.bridgeState}
+            isLoading={sessionPanel.isLoading}
+            onClose={sessionPanel.closePanel}
+            onSelectSession={sessionPanel.selectSession}
+            selectedEvents={sessionPanel.selectedEvents}
+            selectedSession={sessionPanel.selectedSession}
+            selectedSessionId={sessionPanel.selectedSessionId}
+          />
+        ) : null}
       </section>
     </main>
   );
