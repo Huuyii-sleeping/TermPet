@@ -12,6 +12,12 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
+    "spec:list": "openspec.cmd list",
+    "spec:view": "openspec.cmd view",
+    "spec:new": "openspec.cmd new change",
+    "spec:status": "openspec.cmd status",
+    "spec:validate": "openspec.cmd validate",
+    "spec:archive": "openspec.cmd archive",
     "prepare:git": "git config core.hooksPath .githooks",
     "commitlint": "commitlint"
   },

@@ -1,0 +1,23 @@
+schema: spec-driven
+
+context: |
+  项目名称：TermPet（桌宠命令行助手）
+  第一版目标：聚焦代码代理工具状态可视化，不扩大到所有命令行工具。
+  技术栈：pnpm workspace、TypeScript、Electron、Tailwind CSS。
+  架构边界：命令行工具 -> 适配器 -> 统一事件协议 -> 本地桥接服务 -> 桌面桌宠。
+  文档约束：所有说明文档正文使用中文。
+  提交流程：提交前通过 pnpm typecheck，推送前通过 pnpm build，提交信息使用 Conventional Commits。
+  工作方式：每次增量开发先对应 docs/prd 中的阶段文档，再创建和维护 OpenSpec change。
+
+rules:
+  proposal:
+    - 必须写清楚本次变更对应的 PRD 编号和目标。
+    - 必须包含范围、非目标、验收方式，避免把第一版范围扩大。
+    - 正文使用中文，技术名词和命令可保留原文。
+  tasks:
+    - 任务按可验证的最小交付拆分，并按执行顺序排列。
+    - 任务描述应明确涉及的模块、接口或文档，不写空泛表述。
+    - 任务完成后要及时更新状态，保证 change 可以反映真实进度。
+  specs:
+    - 只有影响长期行为、接口、架构边界或约束时才修改 spec。
+    - spec 变更必须说明受影响模块和兼容性影响。

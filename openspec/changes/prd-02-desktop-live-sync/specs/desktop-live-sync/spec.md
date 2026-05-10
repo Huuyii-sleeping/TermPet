@@ -1,0 +1,38 @@
+## ADDED Requirements
+
+### Requirement: 桌面端必须以桥接状态作为桌宠唯一状态源
+
+桌面端 SHALL 在启动后先获取桥接服务的当前快照，再基于 WebSocket 增量消息更新桌宠状态，不再依赖演示态驱动主视图。
+
+#### Scenario: 启动后加载当前状态
+
+- **WHEN** 桌面端启动并成功连接桥接服务
+- **THEN** 系统必须先读取当前活跃会话和最近状态，再渲染桌宠主视图
+
+### Requirement: 桌面端必须实时响应桥接事件和主会话切换
+
+桌面端 SHALL 在收到 `snapshot` 或 `event` 消息时，立即更新当前主会话对应的桌宠文案、动作和表情；当活跃会话发生变化时，主视图 MUST 切换到最新活跃会话。
+
+#### Scenario: 收到新的活跃会话快照
+
+- **WHEN** 桥接服务推送包含新 `activeSessionId` 的 `snapshot`
+- **THEN** 桌宠主视图必须切换到该会话的最新状态
+
+#### Scenario: 收到状态事件
+
+- **WHEN** 桥接服务收到 `thinking`、`working`、`waiting_approval`、`success` 或 `error` 事件并广播给桌面端
+- **THEN** 桌宠必须立即更新对应的文案、动作和表情
+
+### Requirement: 桥接断开后必须进入轻量降级并尝试恢复
+
+桌面端 SHALL 在桥接连接断开时保留窗口和基础显示能力，并持续尝试重连；重连成功后 MUST 恢复真实状态同步。
+
+#### Scenario: 桥接服务暂时不可用
+
+- **WHEN** WebSocket 连接关闭或初始化请求失败
+- **THEN** 桌宠必须显示轻量降级状态且窗口继续存在
+
+#### Scenario: 桥接服务恢复
+
+- **WHEN** 桥接服务恢复可用并重新建立连接
+- **THEN** 桌面端必须重新同步当前状态并恢复实时更新

@@ -123,6 +123,15 @@
 - 重要事件打断要清晰，但需要可配置，避免长期使用时过度打扰。
 - 权限确认界面必须明确、克制、可读，不要把风险信息藏在装饰性视觉里。
 
+## OpenSpec 变更流程
+
+- 从现在开始，每次增量开发都必须使用 OpenSpec 记录变更，不要直接跳过文档进入编码。
+- 开始开发前，先检查 `docs/prd/` 中对应阶段文档，再创建一个 OpenSpec change，名称应能对应当前 PRD 和本次目标，例如 `prd-02-...`。
+- 本次开发的范围、非目标、任务拆分、验收标准应优先落到 `openspec/changes/<change-name>/` 中，并与 `docs/prd/` 保持一致。
+- 开发完成后，先更新 change 中的任务状态，再执行 `openspec.cmd validate` 进行校验。
+- 变更确认完成后，再执行归档，把本次 change 归入 `openspec/changes/archive/`，保证每次增量开发都有可追踪记录。
+- Windows PowerShell 下优先使用 `openspec.cmd`，不要直接调用 `openspec.ps1`，避免被执行策略拦截。
+
 ## 协作要求
 
 - 文档修改要保持产品需求、架构、协议、路线图之间的一致性。
