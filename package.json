@@ -9,6 +9,7 @@
     "dev": "pnpm --parallel --filter @termpet/bridge --filter @termpet/desktop dev",
     "dev:desktop": "pnpm --filter @termpet/desktop dev",
     "dev:bridge": "pnpm --filter @termpet/bridge dev",
+    "codex:live": "pnpm --filter @termpet/plugin-codex build && node plugins/codex/dist/hook-cli.js run",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",

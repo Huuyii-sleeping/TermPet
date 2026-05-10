@@ -4,6 +4,7 @@ build/
 out/
 .turbo/
 .vite/
+.termpet/
 *.log
 *.tsbuildinfo
 .pnpm-store/

@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "codex:hook": "node dist/hook-cli.js forward",
+    "codex:hooks": "node dist/hook-cli.js print-hooks",
+    "codex:live": "node dist/hook-cli.js run",
     "typecheck": "tsc --noEmit --pretty false",
     "lint": "tsc --noEmit --pretty false"
   },
