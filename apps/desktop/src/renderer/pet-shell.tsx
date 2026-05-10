@@ -1,7 +1,6 @@
-import type { TermPetBridgeState, TermPetState } from "@termpet/protocol";
+import type { TermPetState } from "@termpet/protocol";
 import { getMotionForState } from "@termpet/live2d-runtime";
-import { startTransition, useEffect, useState } from "react";
-import { createBridgeClient, fetchBridgeState } from "./bridge-client";
+import { useBridgeState } from "./use-bridge-state";
 
 interface PetShellViewModel {
   activeSessionId?: string;
@@ -16,69 +15,14 @@ const idleViewModel: PetShellViewModel = {
   connectionState: "connecting",
   currentState: "idle",
   sessionCount: 0,
-  summary: "正在等待桥接服务的状态同步。",
+  summary: "正在连接桥接服务并同步当前会话状态。",
   title: "桌宠待命中",
 };
 
 export function PetShell() {
-  const [viewModel, setViewModel] = useState<PetShellViewModel>(idleViewModel);
+  const bridgeState = useBridgeState();
+  const viewModel = mapBridgeStateToViewModel(bridgeState);
   const motion = getMotionForState(viewModel.currentState);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function syncState() {
-      try {
-        const state = await fetchBridgeState();
-        if (cancelled) {
-          return;
-        }
-
-        const nextViewModel = mapBridgeStateToViewModel(state);
-        startTransition(() => {
-          setViewModel(nextViewModel);
-        });
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        console.warn("桥接状态同步失败", error);
-        startTransition(() => {
-          setViewModel((previous) => ({
-            ...previous,
-            connectionState: "offline",
-            summary: "暂时无法连接桥接服务，桌宠会在恢复后自动刷新。",
-            title: "桥接服务暂时离线",
-          }));
-        });
-      }
-    }
-
-    const client = createBridgeClient(
-      () => {
-        void syncState();
-      },
-      (state) => {
-        if (cancelled) {
-          return;
-        }
-
-        const nextViewModel = mapBridgeStateToViewModel(state);
-        startTransition(() => {
-          setViewModel(nextViewModel);
-        });
-      },
-    );
-
-    void syncState();
-    client.connect();
-
-    return () => {
-      cancelled = true;
-      client.disconnect();
-    };
-  }, []);
 
   return (
     <main className="min-h-screen bg-transparent text-zinc-950">
@@ -110,19 +54,41 @@ export function PetShell() {
   );
 }
 
-function mapBridgeStateToViewModel(state: TermPetBridgeState): PetShellViewModel {
-  const activeSession = state.activeSession;
-  const latestEvent = activeSession
-    ? [...state.recentEvents].reverse().find((event) => event.sessionId === activeSession.id)
-    : undefined;
+function mapBridgeStateToViewModel(state: ReturnType<typeof useBridgeState>): PetShellViewModel {
+  if (!state.bridgeState || !state.activeSession) {
+    if (state.connectionState === "offline") {
+      return {
+        ...idleViewModel,
+        connectionState: "offline",
+        summary: "暂时无法连接桥接服务，桌宠会在恢复后自动重新同步。",
+        title: "桥接服务暂时离线",
+      };
+    }
+
+    return {
+      ...idleViewModel,
+      connectionState: state.connectionState,
+    };
+  }
+
+  if (state.connectionState === "offline") {
+    return {
+      activeSessionId: state.bridgeState.activeSessionId,
+      connectionState: "offline",
+      currentState: state.activeSession.currentState,
+      sessionCount: state.bridgeState.sessions.length,
+      summary: "当前展示最近一次同步状态，桥接服务恢复后会自动刷新。",
+      title: state.activeSession.title,
+    };
+  }
 
   return {
-    activeSessionId: state.activeSessionId,
-    connectionState: "connected",
-    currentState: activeSession?.currentState ?? "idle",
-    sessionCount: state.sessions.length,
-    summary: latestEvent?.summary ?? "正在等待新的状态事件。",
-    title: activeSession?.title ?? "桌宠待命中",
+    activeSessionId: state.bridgeState.activeSessionId,
+    connectionState: state.connectionState,
+    currentState: state.activeSession.currentState,
+    sessionCount: state.bridgeState.sessions.length,
+    summary: state.activeEvent?.summary ?? "正在等待新的状态事件。",
+    title: state.activeSession.title,
   };
 }
 

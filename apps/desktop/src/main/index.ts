@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch("disable-gpu");
+
 function createWindow() {
   const window = new BrowserWindow({
     width: 360,
