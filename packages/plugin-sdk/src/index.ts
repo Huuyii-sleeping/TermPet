@@ -1,24 +1,9 @@
-import type { TermPetAction, TermPetEvent } from "@termpet/protocol";
+import type { TermPetActionRequest, TermPetActionResult, TermPetEvent } from "@termpet/protocol";
 
 export interface PluginContext {
   emit(event: TermPetEvent): Promise<void>;
   log(level: "info" | "warn" | "error", message: string, metadata?: unknown): void;
   getSettings<T = unknown>(pluginId: string): Promise<T | undefined>;
-}
-
-export interface TermPetActionRequest {
-  actionId: string;
-  eventId: string;
-  sessionId: string;
-  source: string;
-  kind: TermPetAction["kind"];
-  metadata?: Record<string, unknown>;
-}
-
-export interface TermPetActionResult {
-  ok: boolean;
-  message?: string;
-  requiresTerminalFallback?: boolean;
 }
 
 export interface TermPetPlugin {

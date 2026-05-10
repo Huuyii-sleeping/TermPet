@@ -33,12 +33,15 @@ export function PetShell() {
   return (
     <main className="relative min-h-screen bg-transparent text-zinc-950">
       <InterruptLayer
+        actionPendingId={interruptState.actionPendingId}
+        actionResult={interruptState.actionResult}
         bubbleEvent={interruptState.bubbleEvent}
         detailActions={interruptState.detailActions}
         isDetailExpanded={interruptState.isDetailExpanded}
         modalEvent={interruptState.modalEvent}
         onDismissModal={interruptState.dismissModal}
         onDismissToast={interruptState.dismissToast}
+        onRunAction={interruptState.runAction}
         onToggleDetail={interruptState.toggleDetail}
         showTerminalFallback={interruptState.showTerminalFallback}
         toastEvent={interruptState.toastEvent}

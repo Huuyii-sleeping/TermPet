@@ -1,6 +1,9 @@
 import { createServer } from "node:http";
 import { normalizeEvent } from "@termpet/protocol";
 import type {
+  TermPetAction,
+  TermPetActionRequest,
+  TermPetActionResult,
   TermPetBridgeEventMessage,
   TermPetBridgeSessionDetail,
   TermPetBridgeSnapshotMessage,
@@ -148,6 +151,25 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "POST" && requestUrl.pathname === "/actions") {
+    const chunks: Buffer[] = [];
+
+    for await (const chunk of request) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    const payload = JSON.parse(Buffer.concat(chunks).toString("utf8")) as Partial<TermPetActionRequest>;
+    const actionRequest = normalizeActionRequest(payload);
+    const actionResult = routeAction(actionRequest);
+
+    response.writeHead(actionResult.ok ? 200 : 400, {
+      "access-control-allow-origin": "*",
+      "content-type": "application/json; charset=utf-8",
+    });
+    response.end(JSON.stringify(actionResult));
+    return;
+  }
+
   response.writeHead(404, {
     "access-control-allow-origin": "*",
     "content-type": "application/json; charset=utf-8",
@@ -164,7 +186,7 @@ webSocketServer.on("connection", (client) => {
   });
 });
 
-function recordEvent(event: TermPetEvent) {
+export function recordEvent(event: TermPetEvent) {
   eventIds.add(event.id);
   recentEvents.push(event);
   trimRecentEvents();
@@ -256,6 +278,109 @@ function getSessionDetail(sessionId: string): TermPetBridgeSessionDetail | undef
   };
 }
 
+export function routeAction(actionRequest: TermPetActionRequest): TermPetActionResult {
+  const event = recentEvents.find((item) => item.id === actionRequest.eventId && item.sessionId === actionRequest.sessionId);
+  if (!event) {
+    return {
+      protocolVersion: "1.0",
+      actionId: actionRequest.actionId,
+      eventId: actionRequest.eventId,
+      sessionId: actionRequest.sessionId,
+      source: actionRequest.source,
+      kind: actionRequest.kind,
+      ok: false,
+      handledBy: "bridge",
+      message: "未找到对应事件，当前动作无法执行。",
+      timestamp: Date.now(),
+    };
+  }
+
+  const action = event.actions?.find((item) => item.id === actionRequest.actionId);
+  if (!action) {
+    return {
+      protocolVersion: "1.0",
+      actionId: actionRequest.actionId,
+      eventId: actionRequest.eventId,
+      sessionId: actionRequest.sessionId,
+      source: actionRequest.source,
+      kind: actionRequest.kind,
+      ok: false,
+      handledBy: "bridge",
+      message: "未找到对应动作定义，当前动作无法执行。",
+      timestamp: Date.now(),
+    };
+  }
+
+  return createActionResult(actionRequest, action, event);
+}
+
+export function createActionResult(actionRequest: TermPetActionRequest, action: TermPetAction, event: TermPetEvent): TermPetActionResult {
+  switch (action.kind) {
+    case "open_detail":
+      return {
+        protocolVersion: "1.0",
+        actionId: actionRequest.actionId,
+        eventId: actionRequest.eventId,
+        sessionId: actionRequest.sessionId,
+        source: actionRequest.source,
+        kind: actionRequest.kind,
+        ok: true,
+        handledBy: "bridge",
+        message: "详情已在桌宠内展开，可直接查看当前摘要。",
+        timestamp: Date.now(),
+      };
+    case "dismiss":
+      return {
+        protocolVersion: "1.0",
+        actionId: actionRequest.actionId,
+        eventId: actionRequest.eventId,
+        sessionId: actionRequest.sessionId,
+        source: actionRequest.source,
+        kind: actionRequest.kind,
+        ok: true,
+        handledBy: "bridge",
+        message: "当前提醒已在本地收起。",
+        timestamp: Date.now(),
+      };
+    default:
+      return {
+        protocolVersion: "1.0",
+        actionId: actionRequest.actionId,
+        eventId: actionRequest.eventId,
+        sessionId: actionRequest.sessionId,
+        source: actionRequest.source,
+        kind: actionRequest.kind,
+        ok: true,
+        handledBy: "terminal_fallback",
+        message: buildTerminalFallbackMessage(action, event),
+        requiresTerminalFallback: true,
+        timestamp: Date.now(),
+      };
+  }
+}
+
+function buildTerminalFallbackMessage(action: TermPetAction, event: TermPetEvent): string {
+  const base = action.kind === "open_terminal" ? "请返回终端继续处理当前操作。" : `当前动作“${action.label}”暂不支持桌宠内直接回传。`;
+  return `${base}${event.workspace ? ` 工作目录：${event.workspace}` : ""}`;
+}
+
+export function normalizeActionRequest(input: Partial<TermPetActionRequest>): TermPetActionRequest {
+  return {
+    protocolVersion: "1.0",
+    actionId: typeof input.actionId === "string" ? input.actionId : "unknown_action",
+    eventId: typeof input.eventId === "string" ? input.eventId : "unknown_event",
+    sessionId: typeof input.sessionId === "string" ? input.sessionId : "default",
+    source: typeof input.source === "string" ? input.source : "unknown",
+    kind: asActionKind(input.kind),
+    metadata: typeof input.metadata === "object" && input.metadata !== null ? input.metadata : undefined,
+  };
+}
+
+function asActionKind(value: TermPetActionRequest["kind"] | undefined): TermPetAction["kind"] {
+  const kinds: TermPetAction["kind"][] = ["approve", "deny", "open_detail", "open_terminal", "dismiss", "rerun", "stop"];
+  return kinds.includes(value as TermPetAction["kind"]) ? (value as TermPetAction["kind"]) : "open_detail";
+}
+
 function parseLimit(value: string | null): number | undefined {
   if (!value) {
     return undefined;
@@ -288,6 +413,15 @@ function sendMessage(client: WebSocket, message: TermPetBridgeEventMessage | Ter
   client.send(JSON.stringify(message));
 }
 
-server.listen(port, host, () => {
-  console.log(`桌宠桥接服务已启动：http://${host}:${port}`);
-});
+export function resetBridgeStateForTest() {
+  recentEvents.length = 0;
+  eventIds.clear();
+  sessions.clear();
+  updatedAt = Date.now();
+}
+
+if (process.env.TERM_PET_BRIDGE_DISABLE_SERVER !== "1") {
+  server.listen(port, host, () => {
+    console.log(`桌宠桥接服务已启动：http://${host}:${port}`);
+  });
+}

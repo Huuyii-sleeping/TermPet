@@ -21,6 +21,30 @@ export interface TermPetAction {
   metadata?: Record<string, unknown>;
 }
 
+export interface TermPetActionRequest {
+  protocolVersion: "1.0";
+  actionId: string;
+  eventId: string;
+  sessionId: string;
+  source: string;
+  kind: TermPetAction["kind"];
+  metadata?: Record<string, unknown>;
+}
+
+export interface TermPetActionResult {
+  protocolVersion: "1.0";
+  actionId: string;
+  eventId: string;
+  sessionId: string;
+  source: string;
+  kind: TermPetAction["kind"];
+  ok: boolean;
+  handledBy: "bridge" | "plugin" | "terminal_fallback";
+  message?: string;
+  requiresTerminalFallback?: boolean;
+  timestamp: number;
+}
+
 export interface TermPetEvent {
   protocolVersion: "1.0";
   id: string;

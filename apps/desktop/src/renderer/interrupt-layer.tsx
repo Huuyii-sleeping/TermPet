@@ -1,6 +1,8 @@
-import type { TermPetAction, TermPetEvent } from "@termpet/protocol";
+import type { TermPetAction, TermPetActionResult, TermPetEvent } from "@termpet/protocol";
 
 export interface InterruptLayerProps {
+  actionPendingId?: string;
+  actionResult?: TermPetActionResult;
   bubbleEvent?: TermPetEvent;
   detailActions: TermPetAction[];
   isDetailExpanded: boolean;
@@ -9,10 +11,13 @@ export interface InterruptLayerProps {
   toastEvent?: TermPetEvent;
   onDismissModal(): void;
   onDismissToast(): void;
+  onRunAction(action: TermPetAction): void;
   onToggleDetail(): void;
 }
 
 export function InterruptLayer({
+  actionPendingId,
+  actionResult,
   bubbleEvent,
   detailActions,
   isDetailExpanded,
@@ -21,6 +26,7 @@ export function InterruptLayer({
   toastEvent,
   onDismissModal,
   onDismissToast,
+  onRunAction,
   onToggleDetail,
 }: InterruptLayerProps) {
   return (
@@ -108,14 +114,27 @@ export function InterruptLayer({
               {isDetailExpanded ? "收起详情" : "查看详情"}
             </button>
             {detailActions.map((action) => (
-              <span
-                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600"
+              <button
+                className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-600 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={action.enabled === false || actionPendingId === action.id}
                 key={action.id}
+                onClick={() => onRunAction(action)}
+                type="button"
               >
-                {action.label}
-              </span>
+                {actionPendingId === action.id ? "处理中..." : action.label}
+              </button>
             ))}
           </div>
+
+          {actionResult?.message ? (
+            <div
+              className={`mt-3 rounded-2xl border px-3 py-3 text-sm ${
+                actionResult.ok ? "border-sky-200 bg-sky-50 text-sky-950" : "border-rose-200 bg-rose-50 text-rose-950"
+              }`}
+            >
+              {actionResult.message}
+            </div>
+          ) : null}
 
           {isDetailExpanded ? (
             <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
