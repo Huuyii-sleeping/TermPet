@@ -1,23 +1,32 @@
-import type { TermPetBridgeState, TermPetEvent, TermPetSession } from "@termpet/protocol";
+import type { TermPetAuditRecord, TermPetBridgeState, TermPetEvent, TermPetSession } from "@termpet/protocol";
+import type { DesktopSettings } from "./use-desktop-settings";
 
 interface SessionPanelProps {
+  auditRecords: TermPetAuditRecord[];
   bridgeState?: TermPetBridgeState;
   isLoading: boolean;
+  settings: DesktopSettings;
   selectedEvents: TermPetEvent[];
   selectedSession?: TermPetSession;
   selectedSessionId?: string;
   onClose(): void;
   onSelectSession(sessionId: string): void;
+  onToggleShowSuccessToast(showSuccessToast: boolean): void;
+  onUpdateReminderMode(reminderMode: DesktopSettings["reminderMode"]): void;
 }
 
 export function SessionPanel({
+  auditRecords,
   bridgeState,
   isLoading,
+  settings,
   selectedEvents,
   selectedSession,
   selectedSessionId,
   onClose,
   onSelectSession,
+  onToggleShowSuccessToast,
+  onUpdateReminderMode,
 }: SessionPanelProps) {
   const sessions = bridgeState?.sessions ?? [];
 
@@ -29,7 +38,7 @@ export function SessionPanel({
           <h2 className="mt-1 text-base font-semibold text-zinc-950">{selectedSession?.title ?? "当前暂无会话详情"}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="rounded-full border border-zinc-200 px-2 py-1 text-[11px] text-zinc-500">设置入口占位</span>
+          <span className="rounded-full border border-zinc-200 px-2 py-1 text-[11px] text-zinc-500">设置已启用</span>
           <button
             className="rounded-full border border-zinc-200 px-3 py-1 text-xs text-zinc-600 transition hover:bg-zinc-100"
             onClick={onClose}
@@ -38,6 +47,66 @@ export function SessionPanel({
             收起
           </button>
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <section className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3">
+          <p className="text-sm font-semibold text-zinc-900">提醒偏好</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                settings.reminderMode === "all"
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100"
+              }`}
+              onClick={() => onUpdateReminderMode("all")}
+              type="button"
+            >
+              全部提醒
+            </button>
+            <button
+              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                settings.reminderMode === "critical_only"
+                  ? "border-zinc-900 bg-zinc-900 text-white"
+                  : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100"
+              }`}
+              onClick={() => onUpdateReminderMode("critical_only")}
+              type="button"
+            >
+              仅关键提醒
+            </button>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-3 py-2">
+            <div>
+              <p className="text-sm font-medium text-zinc-900">完成提醒</p>
+              <p className="text-xs text-zinc-500">控制 success 状态的 toast 是否展示。</p>
+            </div>
+            <button
+              className={`rounded-full border px-3 py-1 text-xs transition ${
+                settings.showSuccessToast
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                  : "border-zinc-200 bg-zinc-100 text-zinc-500"
+              }`}
+              onClick={() => onToggleShowSuccessToast(!settings.showSuccessToast)}
+              type="button"
+            >
+              {settings.showSuccessToast ? "已开启" : "已关闭"}
+            </button>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3">
+          <p className="text-sm font-semibold text-zinc-900">降级状态</p>
+          <div className="mt-3 space-y-2 text-sm text-zinc-600">
+            <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2">
+              桥接离线时，桌宠会保留最近一次同步状态并显示离线说明。
+            </div>
+            <div className="rounded-2xl border border-zinc-200 bg-white px-3 py-2">
+              当前角色仍处于二维占位模式，后续接入真实模型后会替换为正式角色运行时。
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50/90 p-3">
@@ -107,6 +176,36 @@ export function SessionPanel({
               );
             })}
           </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-zinc-200 bg-white/90 p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-zinc-900">最近审计</p>
+          <span className="text-xs text-zinc-500">仅本地保存</span>
+        </div>
+        <div className="mt-3 max-h-36 space-y-2 overflow-auto pr-1">
+          {auditRecords.length > 0 ? (
+            auditRecords.map((record) => (
+              <article className="rounded-2xl border border-zinc-100 bg-zinc-50 px-3 py-2" key={record.id}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-zinc-900">
+                    {record.actionKind} · {record.ok ? "成功" : "失败"}
+                  </p>
+                  <span className="text-[11px] text-zinc-500">{formatTimestamp(record.timestamp)}</span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">
+                  来源：{record.source}
+                  {record.workspace ? ` · ${record.workspace}` : ""}
+                </p>
+                <p className="mt-1 text-sm text-zinc-600">{record.message ?? "当前记录没有额外说明。"}</p>
+              </article>
+            ))
+          ) : (
+            <div className="rounded-2xl border border-dashed border-zinc-200 px-3 py-4 text-sm text-zinc-500">
+              当前还没有可展示的本地动作审计。
+            </div>
+          )}
         </div>
       </div>
     </section>

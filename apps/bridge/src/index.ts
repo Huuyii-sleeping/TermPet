@@ -1,9 +1,12 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
+import path from "node:path";
 import { normalizeEvent } from "@termpet/protocol";
 import type {
   TermPetAction,
   TermPetActionRequest,
   TermPetActionResult,
+  TermPetAuditRecord,
   TermPetBridgeEventMessage,
   TermPetBridgeSessionDetail,
   TermPetBridgeSnapshotMessage,
@@ -16,7 +19,13 @@ import { WebSocket, WebSocketServer } from "ws";
 const host = "127.0.0.1";
 const port = Number(process.env.TERM_PET_BRIDGE_PORT ?? 47631);
 const maxRecentEvents = Number(process.env.TERM_PET_RECENT_EVENTS_LIMIT ?? 100);
+const maxRecentSessions = Number(process.env.TERM_PET_RECENT_SESSIONS_LIMIT ?? 50);
+const maxAuditRecords = Number(process.env.TERM_PET_AUDIT_LIMIT ?? 200);
+const persistenceFilePath =
+  process.env.TERM_PET_BRIDGE_STORE_FILE ?? path.join(process.cwd(), ".termpet", "bridge-store.json");
+
 const recentEvents: TermPetEvent[] = [];
+const auditRecords: TermPetAuditRecord[] = [];
 const eventIds = new Set<string>();
 const sessions = new Map<string, TermPetSession>();
 let updatedAt = Date.now();
@@ -108,6 +117,18 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && requestUrl.pathname === "/audit") {
+    const limit = parseLimit(requestUrl.searchParams.get("limit"));
+    const result = typeof limit === "number" ? auditRecords.slice(-limit).reverse() : [...auditRecords].reverse();
+
+    response.writeHead(200, {
+      "access-control-allow-origin": "*",
+      "content-type": "application/json; charset=utf-8",
+    });
+    response.end(JSON.stringify(result));
+    return;
+  }
+
   if (request.method === "POST" && requestUrl.pathname === "/events") {
     const chunks: Buffer[] = [];
 
@@ -186,12 +207,78 @@ webSocketServer.on("connection", (client) => {
   });
 });
 
+export async function loadPersistedBridgeStore() {
+  try {
+    const content = await readFile(persistenceFilePath, "utf8");
+    const parsed = JSON.parse(content) as Partial<{
+      recentEvents: TermPetEvent[];
+      sessions: TermPetSession[];
+      auditRecords: TermPetAuditRecord[];
+      updatedAt: number;
+    }>;
+
+    recentEvents.length = 0;
+    eventIds.clear();
+    sessions.clear();
+    auditRecords.length = 0;
+
+    for (const event of parsed.recentEvents ?? []) {
+      recentEvents.push(event);
+      eventIds.add(event.id);
+    }
+
+    for (const session of parsed.sessions ?? []) {
+      sessions.set(session.id, session);
+    }
+
+    for (const record of parsed.auditRecords ?? []) {
+      auditRecords.push(record);
+    }
+
+    updatedAt = typeof parsed.updatedAt === "number" ? parsed.updatedAt : Date.now();
+    trimRecentEvents();
+    trimSessions();
+    trimAuditRecords();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      console.warn("桥接历史恢复失败，已回退为空状态。", error);
+    }
+  }
+}
+
+export async function persistBridgeStore() {
+  try {
+    await mkdir(path.dirname(persistenceFilePath), { recursive: true });
+    await writeFile(
+      persistenceFilePath,
+      JSON.stringify(
+        {
+          recentEvents,
+          sessions: getOrderedSessions(),
+          auditRecords,
+          updatedAt,
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+  } catch (error) {
+    console.warn("桥接历史持久化失败。", error);
+  }
+}
+
+function persistBridgeStoreSoon() {
+  void persistBridgeStore();
+}
+
 export function recordEvent(event: TermPetEvent) {
   eventIds.add(event.id);
   recentEvents.push(event);
   trimRecentEvents();
   upsertSession(event);
   updatedAt = Date.now();
+  persistBridgeStoreSoon();
 }
 
 function trimRecentEvents() {
@@ -200,6 +287,23 @@ function trimRecentEvents() {
     if (removed) {
       eventIds.delete(removed.id);
     }
+  }
+}
+
+function trimSessions() {
+  const orderedSessions = getOrderedSessions();
+  if (orderedSessions.length <= maxRecentSessions) {
+    return;
+  }
+
+  for (const session of orderedSessions.slice(maxRecentSessions)) {
+    sessions.delete(session.id);
+  }
+}
+
+function trimAuditRecords() {
+  while (auditRecords.length > maxAuditRecords) {
+    auditRecords.shift();
   }
 }
 
@@ -218,6 +322,7 @@ function upsertSession(event: TermPetEvent) {
       latestActivityAt: event.timestamp,
       createdAt: event.timestamp,
     });
+    trimSessions();
     return;
   }
 
@@ -232,6 +337,7 @@ function upsertSession(event: TermPetEvent) {
       latestEventId: event.id,
       latestActivityAt: event.timestamp,
     });
+    trimSessions();
     return;
   }
 
@@ -248,7 +354,7 @@ function getActiveSessionId(): string | undefined {
   return getOrderedSessions()[0]?.id;
 }
 
-function getBridgeState(): TermPetBridgeState {
+export function getBridgeState(): TermPetBridgeState {
   const orderedSessions = getOrderedSessions();
   const activeSessionId = orderedSessions[0]?.id;
 
@@ -276,6 +382,10 @@ function getSessionDetail(sessionId: string): TermPetBridgeSessionDetail | undef
     recentEvents: getRecentEventsForSession(sessionId),
     isActive: getActiveSessionId() === sessionId,
   };
+}
+
+export function getAuditRecords(): TermPetAuditRecord[] {
+  return [...auditRecords];
 }
 
 export function routeAction(actionRequest: TermPetActionRequest): TermPetActionResult {
@@ -311,7 +421,9 @@ export function routeAction(actionRequest: TermPetActionRequest): TermPetActionR
     };
   }
 
-  return createActionResult(actionRequest, action, event);
+  const result = createActionResult(actionRequest, action, event);
+  recordActionAudit(actionRequest, result, event);
+  return result;
 }
 
 export function createActionResult(actionRequest: TermPetActionRequest, action: TermPetAction, event: TermPetEvent): TermPetActionResult {
@@ -357,6 +469,25 @@ export function createActionResult(actionRequest: TermPetActionRequest, action: 
         timestamp: Date.now(),
       };
   }
+}
+
+function recordActionAudit(actionRequest: TermPetActionRequest, actionResult: TermPetActionResult, event: TermPetEvent) {
+  auditRecords.push({
+    id: `audit_${actionRequest.actionId}_${actionResult.timestamp}`,
+    actionId: actionRequest.actionId,
+    actionKind: actionRequest.kind,
+    eventId: actionRequest.eventId,
+    sessionId: actionRequest.sessionId,
+    source: actionRequest.source,
+    workspace: event.workspace,
+    ok: actionResult.ok,
+    handledBy: actionResult.handledBy,
+    message: actionResult.message,
+    requiresTerminalFallback: actionResult.requiresTerminalFallback,
+    timestamp: actionResult.timestamp,
+  });
+  trimAuditRecords();
+  persistBridgeStoreSoon();
 }
 
 function buildTerminalFallbackMessage(action: TermPetAction, event: TermPetEvent): string {
@@ -415,13 +546,18 @@ function sendMessage(client: WebSocket, message: TermPetBridgeEventMessage | Ter
 
 export function resetBridgeStateForTest() {
   recentEvents.length = 0;
+  auditRecords.length = 0;
   eventIds.clear();
   sessions.clear();
   updatedAt = Date.now();
 }
 
-if (process.env.TERM_PET_BRIDGE_DISABLE_SERVER !== "1") {
-  server.listen(port, host, () => {
-    console.log(`桌宠桥接服务已启动：http://${host}:${port}`);
-  });
-}
+export const bridgeReady = (async () => {
+  await loadPersistedBridgeStore();
+
+  if (process.env.TERM_PET_BRIDGE_DISABLE_SERVER !== "1") {
+    server.listen(port, host, () => {
+      console.log(`桌宠桥接服务已启动：http://${host}:${port}`);
+    });
+  }
+})();

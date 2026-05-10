@@ -2,7 +2,9 @@ import type { TermPetState } from "@termpet/protocol";
 import { getMotionForState } from "@termpet/live2d-runtime";
 import { InterruptLayer } from "./interrupt-layer";
 import { SessionPanel } from "./session-panel";
+import { useAuditLog } from "./use-audit-log";
 import { useBridgeState } from "./use-bridge-state";
+import { useDesktopSettings } from "./use-desktop-settings";
 import { useInterruptState } from "./use-interrupt-state";
 import { useSessionPanel } from "./use-session-panel";
 
@@ -25,8 +27,10 @@ const idleViewModel: PetShellViewModel = {
 
 export function PetShell() {
   const bridgeState = useBridgeState();
-  const interruptState = useInterruptState(bridgeState.activeEvent);
+  const desktopSettings = useDesktopSettings();
+  const interruptState = useInterruptState(bridgeState.activeEvent, desktopSettings.settings);
   const sessionPanel = useSessionPanel(bridgeState.bridgeState);
+  const auditRecords = useAuditLog(sessionPanel.isOpen, interruptState.actionResult?.timestamp);
   const viewModel = mapBridgeStateToViewModel(bridgeState);
   const motion = getMotionForState(viewModel.currentState);
 
@@ -72,6 +76,7 @@ export function PetShell() {
           <p className="mt-2 text-sm text-zinc-600">
             动作：{motion.motion}，表情：{motion.expression}
           </p>
+          <p className="mt-2 text-xs text-zinc-500">角色：当前为占位模式，真实二维模型尚未接入。</p>
           <p className="mt-2 text-xs text-zinc-500">
             连接：{labelForConnectionState(viewModel.connectionState)}
             {viewModel.activeSessionId ? ` · 会话 ${viewModel.activeSessionId}` : ""}
@@ -80,10 +85,14 @@ export function PetShell() {
 
         {sessionPanel.isOpen ? (
           <SessionPanel
+            auditRecords={auditRecords}
             bridgeState={bridgeState.bridgeState}
             isLoading={sessionPanel.isLoading}
+            onToggleShowSuccessToast={desktopSettings.updateShowSuccessToast}
+            onUpdateReminderMode={desktopSettings.updateReminderMode}
             onClose={sessionPanel.closePanel}
             onSelectSession={sessionPanel.selectSession}
+            settings={desktopSettings.settings}
             selectedEvents={sessionPanel.selectedEvents}
             selectedSession={sessionPanel.selectedSession}
             selectedSessionId={sessionPanel.selectedSessionId}

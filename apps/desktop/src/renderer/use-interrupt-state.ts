@@ -1,6 +1,7 @@
 import type { InterruptLevel, TermPetAction, TermPetActionResult, TermPetEvent } from "@termpet/protocol";
 import { useEffect, useMemo, useState } from "react";
 import { invokeBridgeAction } from "./bridge-client";
+import type { DesktopSettings } from "./use-desktop-settings";
 
 export interface InterruptStateView {
   activeLevel: InterruptLevel;
@@ -20,7 +21,7 @@ export interface InterruptStateView {
 
 const toastDurationMs = 3600;
 
-export function useInterruptState(activeEvent?: TermPetEvent): InterruptStateView {
+export function useInterruptState(activeEvent: TermPetEvent | undefined, settings: DesktopSettings): InterruptStateView {
   const [dismissedModalId, setDismissedModalId] = useState<string>();
   const [isDetailExpanded, setIsDetailExpanded] = useState(false);
   const [toastEvent, setToastEvent] = useState<TermPetEvent>();
@@ -63,7 +64,7 @@ export function useInterruptState(activeEvent?: TermPetEvent): InterruptStateVie
   }, [toastEvent?.id]);
 
   return useMemo(() => {
-    const activeLevel = activeEvent?.interruptLevel ?? "silent";
+    const activeLevel = resolveInterruptLevel(activeEvent, settings);
     const bubbleEvent = activeLevel === "bubble" ? activeEvent : undefined;
     const modalEvent = activeLevel === "modal" && activeEvent?.id !== dismissedModalId ? activeEvent : undefined;
     const detailActions = activeEvent?.actions ?? [];
@@ -145,5 +146,21 @@ export function useInterruptState(activeEvent?: TermPetEvent): InterruptStateVie
         setIsDetailExpanded((current) => !current);
       },
     };
-  }, [activeEvent, actionPendingId, actionResult, dismissedModalId, isDetailExpanded, toastEvent]);
+  }, [activeEvent, actionPendingId, actionResult, dismissedModalId, isDetailExpanded, settings, toastEvent]);
+}
+
+function resolveInterruptLevel(activeEvent: TermPetEvent | undefined, settings: DesktopSettings): InterruptLevel {
+  if (!activeEvent?.interruptLevel) {
+    return "silent";
+  }
+
+  if (activeEvent.state === "success" && !settings.showSuccessToast) {
+    return "silent";
+  }
+
+  if (settings.reminderMode === "critical_only" && activeEvent.interruptLevel !== "modal") {
+    return "silent";
+  }
+
+  return activeEvent.interruptLevel;
 }

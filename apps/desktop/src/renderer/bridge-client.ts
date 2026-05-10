@@ -1,6 +1,7 @@
 import type {
   TermPetActionRequest,
   TermPetActionResult,
+  TermPetAuditRecord,
   TermPetBridgeEventMessage,
   TermPetBridgeMessage,
   TermPetBridgeSessionDetail,
@@ -164,6 +165,15 @@ export async function invokeBridgeAction(request: TermPetActionRequest): Promise
   }
 
   return (await response.json()) as TermPetActionResult;
+}
+
+export async function fetchBridgeAudit(limit = 6): Promise<TermPetAuditRecord[]> {
+  const response = await fetch(`${bridgeBaseUrl}/audit?limit=${encodeURIComponent(String(limit))}`);
+  if (!response.ok) {
+    throw new Error(`bridge_audit_request_failed:${response.status}`);
+  }
+
+  return (await response.json()) as TermPetAuditRecord[];
 }
 
 function isBridgeEventMessage(value: TermPetBridgeMessage | TermPetEvent): value is Extract<TermPetBridgeMessage, { type: "event" }> {

@@ -45,6 +45,21 @@ export interface TermPetActionResult {
   timestamp: number;
 }
 
+export interface TermPetAuditRecord {
+  id: string;
+  actionId: string;
+  actionKind: TermPetAction["kind"];
+  eventId: string;
+  sessionId: string;
+  source: string;
+  workspace?: string;
+  ok: boolean;
+  handledBy: TermPetActionResult["handledBy"];
+  message?: string;
+  requiresTerminalFallback?: boolean;
+  timestamp: number;
+}
+
 export interface TermPetEvent {
   protocolVersion: "1.0";
   id: string;
