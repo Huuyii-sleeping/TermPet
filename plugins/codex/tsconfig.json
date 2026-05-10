@@ -3,6 +3,11 @@
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@termpet/plugin-sdk": ["../../packages/plugin-sdk/dist/index.d.ts"],
+      "@termpet/protocol": ["../../packages/protocol/dist/index.d.ts"]
+    },
     "types": ["node"]
   },
   "include": ["src"]

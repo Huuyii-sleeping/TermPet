@@ -54,6 +54,34 @@ export interface TermPetSession {
   pinned?: boolean;
 }
 
+export interface TermPetBridgeState {
+  activeSessionId?: string;
+  activeSession?: TermPetSession;
+  sessions: TermPetSession[];
+  recentEvents: TermPetEvent[];
+  updatedAt: number;
+}
+
+export interface TermPetBridgeSessionDetail {
+  session: TermPetSession;
+  recentEvents: TermPetEvent[];
+  isActive: boolean;
+}
+
+export interface TermPetBridgeEventMessage {
+  type: "event";
+  event: TermPetEvent;
+  activeSessionId?: string;
+  updatedAt: number;
+}
+
+export interface TermPetBridgeSnapshotMessage {
+  type: "snapshot";
+  state: TermPetBridgeState;
+}
+
+export type TermPetBridgeMessage = TermPetBridgeEventMessage | TermPetBridgeSnapshotMessage;
+
 export const defaultInterruptLevelByState: Record<TermPetState, InterruptLevel> = {
   idle: "silent",
   listening: "bubble",

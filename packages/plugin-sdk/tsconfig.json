@@ -2,7 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "declaration": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@termpet/protocol": ["../../packages/protocol/dist/index.d.ts"]
+    }
   },
   "include": ["src"]
 }

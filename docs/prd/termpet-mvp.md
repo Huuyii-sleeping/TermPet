@@ -8,12 +8,12 @@
 
 当前总 PRD 已拆成一组按顺序推进的子 PRD：
 
-1. [PRD-01 桥接服务与会话状态基线](prd-01-bridge-session-baseline.md)
-2. [PRD-02 桌宠状态渲染与实时同步](prd-02-desktop-state-sync.md)
-3. [PRD-03 关键状态打断与确认提醒](prd-03-interrupt-and-approval.md)
-4. [PRD-04 点击面板与多会话展示](prd-04-panel-and-multi-session.md)
-5. [PRD-05 Codex 适配器增强与动作链路](prd-05-codex-adapter-and-actions.md)
-6. [PRD-06 设置、持久化与可观测性收口](prd-06-settings-persistence-and-audit.md)
+1. [PRD-01 桥接服务与会话状态基线](01-桥接服务与会话状态基线.md)
+2. [PRD-02 桌宠状态渲染与实时同步](02-桌宠状态渲染与实时同步.md)
+3. [PRD-03 关键状态打断与确认提醒](03-关键状态打断与确认提醒.md)
+4. [PRD-04 点击面板与多会话展示](04-点击面板与多会话展示.md)
+5. [PRD-05 Codex 适配器增强与动作链路](05-Codex 适配器增强与动作链路.md)
+6. [PRD-06 设置、持久化与可观测性收口](06-设置、持久化与可观测性收口.md)
 
 总 PRD 负责约束整体范围，后续实现应优先按子 PRD 顺序推进。
 

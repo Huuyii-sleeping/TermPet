@@ -9,12 +9,12 @@
 
 ## 推荐执行顺序
 
-1. [PRD-01 桥接服务与会话状态基线](prd-01-bridge-session-baseline.md)
-2. [PRD-02 桌宠状态渲染与实时同步](prd-02-desktop-state-sync.md)
-3. [PRD-03 关键状态打断与确认提醒](prd-03-interrupt-and-approval.md)
-4. [PRD-04 点击面板与多会话展示](prd-04-panel-and-multi-session.md)
-5. [PRD-05 Codex 适配器增强与动作链路](prd-05-codex-adapter-and-actions.md)
-6. [PRD-06 设置、持久化与可观测性收口](prd-06-settings-persistence-and-audit.md)
+1. [PRD-01 桥接服务与会话状态基线](01-桥接服务与会话状态基线.md)
+2. [PRD-02 桌宠状态渲染与实时同步](02-桌宠状态渲染与实时同步.md)
+3. [PRD-03 关键状态打断与确认提醒](03-关键状态打断与确认提醒.md)
+4. [PRD-04 点击面板与多会话展示](04-点击面板与多会话展示.md)
+5. [PRD-05 Codex 适配器增强与动作链路](05-Codex 适配器增强与动作链路.md)
+6. [PRD-06 设置、持久化与可观测性收口](06-设置、持久化与可观测性收口.md)
 
 ## 拆分原则
 
@@ -32,4 +32,3 @@
 - 用户能查看当前会话、最近活动和必要详情。
 - 桥接服务具备最小可用的会话管理、动作审计和历史保留能力。
 - Codex 事件链路能够稳定驱动桌宠行为。
-
