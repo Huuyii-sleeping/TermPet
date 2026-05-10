@@ -1,6 +1,8 @@
 import type { TermPetState } from "@termpet/protocol";
 import { getMotionForState } from "@termpet/live2d-runtime";
+import { InterruptLayer } from "./interrupt-layer";
 import { useBridgeState } from "./use-bridge-state";
+import { useInterruptState } from "./use-interrupt-state";
 
 interface PetShellViewModel {
   activeSessionId?: string;
@@ -21,11 +23,23 @@ const idleViewModel: PetShellViewModel = {
 
 export function PetShell() {
   const bridgeState = useBridgeState();
+  const interruptState = useInterruptState(bridgeState.activeEvent);
   const viewModel = mapBridgeStateToViewModel(bridgeState);
   const motion = getMotionForState(viewModel.currentState);
 
   return (
-    <main className="min-h-screen bg-transparent text-zinc-950">
+    <main className="relative min-h-screen bg-transparent text-zinc-950">
+      <InterruptLayer
+        bubbleEvent={interruptState.bubbleEvent}
+        detailActions={interruptState.detailActions}
+        isDetailExpanded={interruptState.isDetailExpanded}
+        modalEvent={interruptState.modalEvent}
+        onDismissModal={interruptState.dismissModal}
+        onDismissToast={interruptState.dismissToast}
+        onToggleDetail={interruptState.toggleDetail}
+        showTerminalFallback={interruptState.showTerminalFallback}
+        toastEvent={interruptState.toastEvent}
+      />
       <section className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center gap-4 p-6">
         <div className="h-44 w-44 rounded-full border border-zinc-200 bg-white/85 shadow-xl backdrop-blur">
           <div className="flex h-full items-center justify-center text-center text-sm font-medium text-zinc-700">

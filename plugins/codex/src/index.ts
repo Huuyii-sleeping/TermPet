@@ -1,5 +1,5 @@
 import type { TermPetPlugin, PluginContext } from "@termpet/plugin-sdk";
-import type { TermPetEvent, TermPetState } from "@termpet/protocol";
+import type { InterruptLevel, TermPetAction, TermPetEvent, TermPetState } from "@termpet/protocol";
 
 interface CodexHookPayload {
   hook_event_name?: string;
@@ -32,10 +32,13 @@ export function mapCodexHookToEvent(input: unknown): TermPetEvent {
     sessionId: payload.session_id ?? "codex_default",
     workspace: payload.cwd,
     state,
+    interruptLevel: interruptLevelByState(state),
     title: titleByState(state),
     summary: summaryByHookName(hookName, payload.tool_name),
-    severity: state === "error" ? "error" : state === "success" ? "success" : "info",
+    detail: detailByState(state, payload.cwd),
+    severity: severityByState(state),
     requiresAction: state === "waiting_approval",
+    actions: actionsByState(state),
     timestamp: payload.timestamp ?? Date.now(),
     metadata: {
       hookName,
@@ -49,6 +52,10 @@ function asCodexPayload(input: unknown): CodexHookPayload {
 }
 
 function mapHookNameToState(hookName: string): TermPetState {
+  if (/error|fail|denied|abort/i.test(hookName)) {
+    return "error";
+  }
+
   switch (hookName) {
     case "SessionStart":
       return "listening";
@@ -87,10 +94,101 @@ function summaryByHookName(hookName: string, toolName?: string): string {
   }
 
   if (hookName === "PermissionRequest") {
-    return "这里需要你确认一下。";
+    return toolName ? `工具 ${toolName} 需要你确认后才能继续。` : "代码代理需要你确认后才能继续。";
+  }
+
+  if (hookName === "Stop") {
+    return "当前任务已经完成。";
+  }
+
+  if (/error|fail|denied|abort/i.test(hookName)) {
+    return "当前任务执行失败，请优先回终端查看。";
   }
 
   return "收到新的代码代理状态。";
+}
+
+function interruptLevelByState(state: TermPetState): InterruptLevel {
+  switch (state) {
+    case "waiting_approval":
+    case "error":
+      return "modal";
+    case "success":
+      return "toast";
+    case "listening":
+    case "thinking":
+    case "working":
+      return "bubble";
+    default:
+      return "silent";
+  }
+}
+
+function severityByState(state: TermPetState): TermPetEvent["severity"] {
+  switch (state) {
+    case "waiting_approval":
+      return "warning";
+    case "success":
+      return "success";
+    case "error":
+      return "error";
+    default:
+      return "info";
+  }
+}
+
+function detailByState(state: TermPetState, workspace?: string): string | undefined {
+  switch (state) {
+    case "waiting_approval":
+      return `当前版本暂不支持在桌宠内直接确认，请返回终端完成允许或拒绝。${workspace ? `\n工作目录：${workspace}` : ""}`;
+    case "error":
+      return `当前任务已标记为失败，请优先回到终端查看错误详情和最近输出。${workspace ? `\n工作目录：${workspace}` : ""}`;
+    case "success":
+      return "当前任务已经完成，桌宠会短暂提醒后自动收起。";
+    default:
+      return undefined;
+  }
+}
+
+function actionsByState(state: TermPetState): TermPetAction[] | undefined {
+  switch (state) {
+    case "waiting_approval":
+      return [
+        {
+          id: "terminal-fallback",
+          label: "回终端确认",
+          kind: "open_terminal",
+          enabled: true,
+          requiresTerminalFallback: true,
+          risk: "medium",
+        },
+        {
+          id: "view-approval-detail",
+          label: "查看详情",
+          kind: "open_detail",
+          enabled: true,
+        },
+      ];
+    case "error":
+      return [
+        {
+          id: "view-error-detail",
+          label: "查看详情",
+          kind: "open_detail",
+          enabled: true,
+        },
+        {
+          id: "terminal-fallback",
+          label: "回终端查看",
+          kind: "open_terminal",
+          enabled: true,
+          requiresTerminalFallback: true,
+          risk: "medium",
+        },
+      ];
+    default:
+      return undefined;
+  }
 }
 
 export default codexPlugin;
